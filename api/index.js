@@ -3,7 +3,6 @@ const cors = require('cors');
 const { default: mongoose } = require('mongoose');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const UserModel = require('./models/User');
 const User = require('./models/User.js');
 const CookieParser = require('cookie-parser');
 const imageDownloader = require('image-downloader');
@@ -11,7 +10,6 @@ const Booking = require('./models/Booking.js');
 const multer = require('multer');
 const Place = require('./models/Place');
 const fs = require('fs');
-const { log } = require('console');
 require('dotenv').config();
 const app = express();
 
@@ -33,6 +31,7 @@ mongoose.connect(process.env.MONGO_URL);
 
 function getUserDataFromReq(req) {
     return new Promise((resolve, reject) => {
+        // trả về dữ liệu người dùng nếu xác thực token thành công
         jwt.verify(req.cookies.token, jwtSecret, {}, async (err, userData) => {
             if (err) throw err;
             resolve(userData);
@@ -135,7 +134,6 @@ app.post('/upload', photosMiddleware.array('photos', 100), async (req, res) => {
 });
 
 app.post('/places', (req, res) => {
-    // mongoose.connect(process.env.MONGO_URL);
     const { token } = req.cookies;
     const {
         title, address, addedPhotos, description, price,
@@ -153,7 +151,6 @@ app.post('/places', (req, res) => {
 });
 
 app.get('/user-places', (req, res) => {
-    // mongoose.connect(process.env.MONGO_URL);
     const { token } = req.cookies;
     jwt.verify(token, jwtSecret, {}, async (err, userData) => {
         const { id } = userData;
@@ -162,14 +159,8 @@ app.get('/user-places', (req, res) => {
     });
 });
 
-app.get('/places/:id', async (req, res) => {
-    // mongoose.connect(process.env.MONGO_URL);
-    const { id } = req.params;
-    res.json(await Place.findById(id));
-});
 
 app.put('/places', async (req, res) => {
-    // mongoose.connect(process.env.MONGO_URL);
     const { token } = req.cookies;
     const {
         id, title, address, addedPhotos, description,
@@ -179,10 +170,12 @@ app.put('/places', async (req, res) => {
         if (err) throw err;
         const placeDoc = await Place.findById(id);
         if (userData.id === placeDoc.owner.toString()) {
+            // sử dụng phương thức set của Mongoose để cập nhật các field 
             placeDoc.set({
                 title, address, photos: addedPhotos, description,
                 perks, extraInfo, checkIn, checkOut, maxGuests, price,
             });
+            // lưu trữ các thay đổi được thực hiện   
             await placeDoc.save();
             res.json('ok');
         }
@@ -190,18 +183,15 @@ app.put('/places', async (req, res) => {
 });
 
 app.get('/places', async (req, res) => {
-    // mongoose.connect(process.env.MONGO_URL);
     res.json(await Place.find());
 });
 
 app.get('/places/:id', async (req, res) => {
-    // mongoose.connect(process.env.MONGO_URL);
     const { id } = req.params;
     res.json(await Place.findById(id));
 });
 
 app.post('/bookings', async (req, res) => {
-    // mongoose.connect(process.env.MONGO_URL);
     const userData = await getUserDataFromReq(req);
     const {
         place, checkIn, checkOut, numberOfGuests, name, phone, price,
@@ -217,8 +207,9 @@ app.post('/bookings', async (req, res) => {
 });
 
 app.get('/bookings', async (req, res) => {
-    // mongoose.connect(process.env.MONGO_URL);
     const userData = await getUserDataFromReq(req);
+    // kết quả trả về bao gồm các phòng được đặt bởi người dùng 
+    //phương thức populate trong Mongoose để nạp thêm dữ liệu từ một collection liên quan khác 
     res.json(await Booking.find({ user: userData.id }).populate('place'));
 });
 

@@ -21,6 +21,7 @@ export default function BookingWidget({ place }) {
 
   let numberOfNights = 0;
   if (checkIn && checkOut) {
+    // function differenceInCalendarDays trả về số ngày đặt phòng
     numberOfNights = differenceInCalendarDays(
       new Date(checkOut),
       new Date(checkIn)
